@@ -22,7 +22,6 @@ import com.checkout.components.interfaces.component.ComponentOption
 import com.checkout.components.interfaces.error.CheckoutError
 import com.checkout.components.interfaces.model.PaymentMethodName
 import com.checkout.components.interfaces.model.PaymentSessionResponse
-import com.checkout.components.wallet.wrapper.GooglePayFlowCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,31 +30,19 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
 
     private lateinit var checkoutComponents: CheckoutComponents
-    private lateinit var coordinator: GooglePayFlowCoordinator
 
-    private var isGpayAvailable: Boolean = false
     private var isCardAvailable: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val paymentSessionID = "ps_2zYCihjAPG3le91cTrmSsoGyiVg"
-        val paymentSessionSecret = "pss_a7f3c38f-f2ec-4740-9a4a-4cf988fe74f2"
-
-        coordinator = GooglePayFlowCoordinator(
-            context = this,
-            handleActivityResult = { resultCode, data ->
-                handleActivityResult(resultCode, data)
-            }
-        )
-
-        val flowCoordinators = mapOf(PaymentMethodName.GooglePay to coordinator)
+        val paymentSessionID = "ps_2zafZsaRCeOAyDy0I9EvLA9jtSM"
+        val paymentSessionSecret = "pss_00cac805-cb93-4ff7-8867-8adf41d52f0d"
 
         initializeCheckoutSDK(
             paymentSessionID = paymentSessionID,
-            paymentSessionSecret = paymentSessionSecret,
-            flowCoordinators = flowCoordinators
+            paymentSessionSecret = paymentSessionSecret
         )
     }
 
@@ -81,7 +68,6 @@ class MainActivity : ComponentActivity() {
     private fun initializeCheckoutSDK(
         paymentSessionID: String,
         paymentSessionSecret: String,
-        flowCoordinators: Map<PaymentMethodName, GooglePayFlowCoordinator>,
     ) {
         val configuration = CheckoutComponentConfiguration(
             context = this,
@@ -90,9 +76,8 @@ class MainActivity : ComponentActivity() {
                 secret = paymentSessionSecret,
             ),
             componentCallback = customComponentCallback,
-            publicKey = "pk_sbox_cwlkrqiyfrfceqz2ggxodhda2yh",
-            environment = Environment.SANDBOX,
-            flowCoordinators = flowCoordinators
+            publicKey = "pk_sbox_usfgxjuyusrz4naf3lfza7crtu2",
+            environment = Environment.SANDBOX
         )
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -103,10 +88,7 @@ class MainActivity : ComponentActivity() {
                     PaymentMethodName.Card,
                     ComponentOption(showPayButton = true)
                 )
-                var googlePay = checkoutComponents.create(PaymentMethodName.GooglePay)
-
                 isCardAvailable = flow.isAvailable()
-                isGpayAvailable = googlePay.isAvailable()
 
                 withContext(Dispatchers.Main) {
                     setContent {
@@ -127,12 +109,6 @@ class MainActivity : ComponentActivity() {
 
                                 Spacer(modifier = Modifier.width(16.dp))
 
-                                Button(
-                                    onClick = { selectedMethod = "gpay" },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Pay with GooglePay")
-                                }
                             }
 
                             Spacer(modifier = Modifier.height(32.dp))
@@ -152,19 +128,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
-                                "gpay" -> {
-                                    if (isGpayAvailable) {
-                                        AndroidView(
-                                            factory = { context ->
-                                                FrameLayout(context).apply {
-                                                    addView(googlePay.provideView(this))
-                                                }
-                                            }
-                                        )
-                                    } else {
-                                        Text("Google Pay is not available.")
-                                    }
-                                }
                             }
                         }
                     }
